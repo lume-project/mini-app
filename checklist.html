@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lume Checklist</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .status-check:checked + .status-label { 
+            border-color: #0088cc !important; 
+            background: rgba(0, 136, 204, 0.2); 
+            color: var(--text-main);
+        }
+        .loader {
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top: 2px solid #0088cc;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="theme-bg-main theme-text-main font-sans min-h-screen p-6 pb-24">
+
+    <div class="flex items-center justify-between mb-8">
+        <button onclick="goBack()" class="w-10 h-10 flex items-center justify-center theme-glass-btn rounded-full active:opacity-70 transition-opacity">
+            <span class="text-xl">←</span>
+        </button>
+        <h1 class="text-lg font-bold italic text-blue-400">Technical Checklist</h1>
+        <div class="w-10"></div>
+    </div>
+
+    <div id="loading-state" class="flex flex-col items-center justify-center py-20 space-y-4">
+        <div class="loader"></div>
+        <p class="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">Синхронизация...</p>
+    </div>
+
+    <div id="checklist-container" class="space-y-6 hidden">
+        </div>
+
+    <div id="footer-section" class="hidden">
+        <button id="submit-btn" onclick="sendFullReport()" class="w-full mt-8 py-4 bg-blue-600 rounded-3xl font-black uppercase text-[10px] tracking-[0.2em] active:scale-[0.98] transition-all text-white">
+            Отправить отчет
+        </button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function applyTheme() {
+            if (tg.colorScheme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+        }
+        applyTheme();
+        tg.onEvent('themeChanged', applyTheme);
+
+        const API_BASE = "https://sinuate-inez-proempire.ngrok-free.dev";
+        const API_ITEMS = `${API_BASE}/api/admin_items`;
+        const API_SUBMIT = `${API_BASE}/api/submit_checklist`;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const USER_INFO = {
+            user_id: urlParams.get('user_id') || tg.initDataUnsafe?.user?.id,
+            complex_id: urlParams.get('complex_id') && urlParams.get('complex_id') !== 'null' ? urlParams.get('complex_id') : undefined
+        };
+
+        let loadedItems = [];
+
+        async function init() {
+            if (!USER_INFO.user_id) {
+                document.getElementById('loading-state').innerHTML = `<p class="text-red-500 text-[9px] font-black uppercase">Ошибка: User ID не найден</p>`;
+                return;
+            }
+
+            try {
+                let fetchUrl = `${API_ITEMS}?user_id=${USER_INFO.user_id}`;
+                if (USER_INFO.complex_id) fetchUrl += `&complex_id=${USER_INFO.complex_id}`;
+
+                const response = await fetch(fetchUrl, {
+                    headers: { 
+                        'ngrok-skip-browser-warning': 'true',
+                        'X-Telegram-Init-Data': tg.initData || ''
+                    }
+                });
+                
+                if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+                
+                const data = await response.json();
+                loadedItems = (data.items || []).filter(item => {
+                    const name = item.Area_object || item.area_object || "";
+                    const nameStr = String(name).trim();
+                    const isInvalid = nameStr === "" || nameStr.toUpperCase() === "NULL" || nameStr === "Зона не указана";
+                    return !isInvalid;
+                });
+
+                if (loadedItems.length === 0) {
+                    throw new Error("Нет данных в таблице services");
+                }
+
+                renderChecklist(loadedItems);
+            } catch (err) {
+                console.error("Load error:", err);
+                document.getElementById('loading-state').innerHTML = `
+                    <p class="text-red-500 text-[9px] font-black uppercase tracking-widest">Ошибка загрузки объектов</p>
+                `;
+            }
+        }
+
+        function renderChecklist(items) {
+            const container = document.getElementById('checklist-container');
+            
+            container.innerHTML = items.map((item, index) => {
+                const name = item.Area_object || item.area_object || "Без названия";
+                return `
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] text-blue-400 font-black uppercase tracking-wider mb-4 border-b border-[var(--glass-border)] pb-2">${name}</p>
+                        
+                        <div class="grid grid-cols-3 gap-2 mb-4">
+                            ${['Норма', 'Внимание', 'Авария'].map(status => `
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="status-${index}" value="${status}" ${status === 'Норма' ? 'checked' : ''} class="status-check hidden">
+                                    <div class="status-label border border-[var(--input-border)] rounded-xl py-2 text-center transition-all bg-[var(--input-bg)]">
+                                        <span class="text-[8px] font-black uppercase ${getStatusColor(status)}">${status}</span>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+
+                        <input type="text" id="note-${index}" placeholder="Примечание к объекту..." class="text-[12px] !bg-transparent !border-0 !border-b !border-b-[var(--input-border)] !rounded-none px-1 pb-1 !outline-none focus:!border-b-blue-500 transition-colors">
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('checklist-container').classList.remove('hidden');
+            document.getElementById('footer-section').classList.remove('hidden');
+        }
+
+        function getStatusColor(status) {
+            if (status === 'Норма') return 'text-green-500';
+            if (status === 'Внимание') return 'text-yellow-500';
+            return 'text-red-500';
+        }
+
+        async function sendFullReport() {
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "ОТПРАВКА...";
+            
+            const items = loadedItems.map((item, index) => ({
+                name: item.Area_object || item.area_object || "Без названия",
+                status: document.querySelector(`input[name="status-${index}"]:checked`).value,
+                note: document.getElementById(`note-${index}`).value
+            }));
+
+            const payload = {
+                user_id: USER_INFO.user_id,
+                complex_id: USER_INFO.complex_id || 1, // Will be overridden on server if missing based on user's identity
+                object_name: "Технический обход",
+                items: items,
+                lang: "ru"
+            };
+
+            try {
+                const response = await fetch(API_SUBMIT, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData || ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    submitBtn.innerText = "ОТЧЕТ ПРИНЯТ";
+                    submitBtn.style.background = "#22c55e";
+                    tg.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => goBack(), 1500);
+                } else {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Ошибка отправки");
+                }
+            } catch (err) {
+                tg.showAlert("Не удалось отправить: " + err.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Отправить отчет";
+            }
+        }
+
+        function goBack() {
+            window.location.href = `index.html?user_id=${USER_INFO.user_id}&complex_id=${USER_INFO.complex_id}`;
+        }
+
+        init();
+    </script>
+</body>
+</html>
