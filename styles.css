@@ -1,0 +1,110 @@
+:root {
+    --bg-color: #0f111a;
+    --text-main: #ffffff;
+    --text-muted: #94a3b8; /* slate-400 */
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --modal-bg: #1e293b;
+    --modal-overlay: rgba(15, 17, 26, 0.98);
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-border: rgba(255, 255, 255, 0.1);
+    --finance-border: rgba(255, 255, 255, 0.05);
+    --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+    --btn-secondary-border: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="light"] {
+    --bg-color: #f1f5f9;  /* slate-100 */
+    --text-main: #0f172a; /* slate-900 */
+    --text-muted: #64748b; /* slate-500 */
+    --glass-bg: rgba(255, 255, 255, 0.7); /* brilliant glass */
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --modal-bg: #ffffff;
+    --modal-overlay: rgba(241, 245, 249, 0.8);
+    --input-bg: rgba(0, 0, 0, 0.03);
+    --input-border: rgba(0, 0, 0, 0.1);
+    --finance-border: rgba(0, 0, 0, 0.05);
+    --btn-secondary-bg: rgba(0, 0, 0, 0.03);
+    --btn-secondary-border: rgba(0, 0, 0, 0.05);
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+}
+
+.theme-text-main {
+    color: var(--text-main);
+}
+
+.theme-bg-main {
+    background-color: var(--bg-color) !important;
+}
+
+.theme-glass-btn {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+}
+.theme-glass-btn:active {
+    background: var(--btn-secondary-border);
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 2.5rem;
+}
+#modal-overlay {
+    background: var(--modal-overlay);
+    display: none;
+}
+#modal-content-container {
+    background: var(--modal-bg) !important;
+}
+        .page { display: none; }
+        .page.active { display: block; }
+        .nav-btn { color: #475569; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-btn.active { color: #0088cc; transform: translateY(-2px); }
+        .nav-btn.active svg { filter: drop-shadow(0 4px 6px rgba(0, 136, 204, 0.15)); }
+
+        input, textarea, select {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 1.2rem;
+            padding: 1rem;
+            color: var(--text-main);
+            width: 100%;
+            outline: none;
+        }
+        .finance-item {
+            border-bottom: 1px solid var(--finance-border);
+            padding: 6px 0;
+        }
+        option {
+            background: var(--modal-bg);
+            color: var(--text-main);
+        }
+        #modal-body::-webkit-scrollbar { width: 4px; }
+        #modal-body::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+        .action-btn-secondary {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 1.8rem;
+            transition: opacity 0.2s;
+        }
+        .action-btn-secondary:active { opacity: 0.7; }
+        .btn-label-base {
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
