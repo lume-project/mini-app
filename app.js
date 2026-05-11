@@ -186,10 +186,14 @@ const tg = window.Telegram.WebApp;
                 const roleAdminBlock = roleLower;
                 let showAdminBlock = false;
                 
+                if (roleAdminBlock.includes('director') || roleAdminBlock.includes('administrator') || roleAdminBlock.includes('engineer') || roleAdminBlock.includes('accountant')) {
+                    showAdminBlock = true;
+                    document.getElementById('admin-panel-btn')?.classList.remove('hidden');
+                }
+
                 if (roleAdminBlock.includes('director') || roleAdminBlock.includes('administrator') || roleAdminBlock.includes('engineer')) {
                     showAdminBlock = true;
                     document.getElementById('t-notification')?.classList.remove('hidden');
-                    document.getElementById('admin-panel-btn')?.classList.remove('hidden');
                 }
                 
                 if (roleAdminBlock.includes('director') || roleAdminBlock.includes('administrator') || roleAdminBlock.includes('accountant')) {
@@ -574,6 +578,14 @@ const tg = window.Telegram.WebApp;
             const title = document.getElementById('sa-edit-title');
             const backBtn = document.getElementById('sa-edit-back-btn');
             
+            if (source === 'tasks') {
+                title.innerText = "Admin Panel";
+                title.className = "text-xl font-bold mb-6 italic text-orange-400 uppercase";
+            } else {
+                title.innerText = "Редактирование: " + (complex?.name || '');
+                title.className = "text-xl font-bold mb-6 italic text-purple-400 uppercase";
+            }
+            
             if (backBtn) {
                 backBtn.innerText = source === 'tasks' ? "< НАЗАД К ЗАДАЧАМ" : "< НАЗАД К СПИСКУ";
             }
@@ -583,6 +595,7 @@ const tg = window.Telegram.WebApp;
             const preview = document.getElementById('sa-edit-logo-preview');
             const rolesBtn = document.getElementById('sa-edit-roles-btn');
             const contactsBtn = document.getElementById('sa-edit-contacts-btn');
+            const financesBtn = document.getElementById('sa-edit-finances-btn');
             const servicesBtn = document.getElementById('sa-edit-services-btn');
             const checklistsBtn = document.getElementById('sa-edit-checklists-btn');
             
@@ -602,16 +615,24 @@ const tg = window.Telegram.WebApp;
             saveBtn.style.display = 'block';
             rolesBtn.style.display = 'block';
             contactsBtn.style.display = 'block';
+            financesBtn.style.display = 'block';
             servicesBtn.style.display = 'block';
             checklistsBtn.style.display = 'block';
 
             const isEngineer = roleLower.includes('engineer');
             const isAdmin = roleLower.includes('director') || roleLower.includes('administrator');
+            const isAccountant = roleLower.includes('accountant');
             
             // Role-based restrictions logic when opening from 'tasks' page
             if (source === 'tasks') {
-                if (isEngineer && !isAdmin) {
-                    // Engineers ONLY can ONLY edit checklists
+                if (isAdmin) {
+                    // Admins see everything except checklists by default, unless they are also engineers
+                    if (!isEngineer) {
+                        checklistsBtn.style.display = 'none';
+                    }
+                } else {
+                    // Not an admin. Check individual permissions.
+                    // By default hide core superadmin fields if not admin
                     saStatusCard.style.display = 'none';
                     saNameCard.style.display = 'none';
                     saCityCard.style.display = 'none';
@@ -620,19 +641,26 @@ const tg = window.Telegram.WebApp;
                     rolesBtn.style.display = 'none';
                     contactsBtn.style.display = 'none';
                     servicesBtn.style.display = 'none';
-                    checklistsBtn.style.display = 'block';
-                } else if (isAdmin && !isEngineer) {
-                    // Director/Admin ONLY can edit anything EXCEPT checklists
-                    checklistsBtn.style.display = 'none';
+                    
+                    // Show checklists only if engineer
+                    if (!isEngineer) {
+                        checklistsBtn.style.display = 'none';
+                    }
+                    
+                    // Show finances only if accountant
+                    if (!isAccountant) {
+                        financesBtn.style.display = 'none';
+                    }
                 }
-                // If both, nothing is blocked!
             }
             
             const inviteBlock = document.getElementById('sa-invite-block');
             const inviteInput = document.getElementById('sa-invite-link');
             
             if (complex) {
-                title.innerText = "Редактирование: " + complex.name;
+                if (source !== 'tasks') {
+                    title.innerText = "Редактирование: " + complex.name;
+                }
                 document.getElementById('sa-edit-id').value = complex.id;
                 document.getElementById('sa-edit-name').value = complex.name || "";
                 document.getElementById('sa-edit-city').value = complex.city || "";
@@ -645,18 +673,6 @@ const tg = window.Telegram.WebApp;
                     } else {
                         inviteBlock.style.display = 'none';
                     }
-                }
-                
-                if (source === 'tasks') {
-                    rolesBtn.style.display = (isEngineer && !isAdmin) ? 'none' : 'block';
-                    contactsBtn.style.display = (isEngineer && !isAdmin) ? 'none' : 'block';
-                    servicesBtn.style.display = (isEngineer && !isAdmin) ? 'none' : 'block';
-                    checklistsBtn.style.display = (isAdmin && !isEngineer) ? 'none' : 'block';
-                } else {
-                    rolesBtn.style.display = 'block';
-                    contactsBtn.style.display = 'block';
-                    servicesBtn.style.display = 'block';
-                    checklistsBtn.style.display = 'block';
                 }
                 
                 if (complex.logo_url) {
@@ -690,7 +706,9 @@ const tg = window.Telegram.WebApp;
 
         function closeSuperadminEdit() {
             switchPage(returnPageAfterEdit);
-            fetchSuperadminData();
+            if (returnPageAfterEdit === 'superadmin') {
+                fetchSuperadminData();
+            }
         }
 
         async function openAdminPanel() {
@@ -701,23 +719,35 @@ const tg = window.Telegram.WebApp;
                 title.innerText = "Загрузка...";
                 switchPage('superadmin-edit'); // temporarily show it empty/loading
                 
+                let currentComplex = null;
                 const cacheKey = 'complexesData_' + APP_CONFIG.user_id;
                 const cached = sessionStorage.getItem(cacheKey);
                 if (cached) {
                     const data = JSON.parse(cached);
-                    sessionStorage.setItem(cacheKey, JSON.stringify(data));
-                renderSuperAdmin(data.complexes);
-                    return;
+                    if (data.complexes) currentComplex = data.complexes.find(c => String(c.id) === String(APP_CONFIG.complex_id));
                 }
-                const response = await fetch(`${ENDPOINTS.adminComplexes}?user_id=${APP_CONFIG.user_id}`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
-                });
-                const data = await response.json();
-                
-                if (data.complexes) {
-                    const currentComplex = data.complexes.find(c => String(c.id) === String(APP_CONFIG.complex_id));
-                    if (currentComplex) {
-                        openSuperadminEdit(currentComplex, 'tasks');
+
+                if (!currentComplex) {
+                    try {
+                        const response = await fetch(`${ENDPOINTS.adminComplexes}?user_id=${APP_CONFIG.user_id}`, {
+                            headers: { 'ngrok-skip-browser-warning': 'true' }
+                        });
+                        const data = await response.json();
+                        if (data.complexes) {
+                            currentComplex = data.complexes.find(c => String(c.id) === String(APP_CONFIG.complex_id));
+                        }
+                    } catch(e) {}
+                }
+
+                if (currentComplex) {
+                    openSuperadminEdit(currentComplex, 'tasks');
+                } else {
+                    const roleLower = String(cachedData?.role || "").toLowerCase();
+                    const isAccountant = roleLower.includes('accountant');
+                    const isEngineer = roleLower.includes('engineer');
+                    if (isAccountant || isEngineer) {
+                        // Bypass adminComplexes for restricted roles that only need access to specific admin panel buttons
+                        openSuperadminEdit({ id: APP_CONFIG.complex_id, name: cachedData?.complex_name || 'Complex' }, 'tasks');
                     } else {
                         tg.showAlert("Complex access error");
                         switchPage('tasks');
@@ -1077,16 +1107,26 @@ const tg = window.Telegram.WebApp;
                             <div class="space-y-3 mb-6" id="admin-roles-list">`;
                 
                 if (data.roles && data.roles.length > 0) {
+                    data.roles.sort((a, b) => {
+                        const aSpecial = a.apt === '00111001' || a.apt === '00110011';
+                        const bSpecial = b.apt === '00111001' || b.apt === '00110011';
+                        if (aSpecial && !bSpecial) return -1;
+                        if (!aSpecial && bSpecial) return 1;
+                        return 0;
+                    });
                     data.roles.forEach(r => {
+                        const isSpecial = r.apt === '00111001' || r.apt === '00110011';
                         const displayName = r.full_name || r.username || `User ${r.id}`;
                         const displayApt = r.apt ? ` (Апт: ${r.apt})` : '';
+                        const bgClass = isSpecial ? 'bg-orange-500/20 border border-orange-500/30' : 'theme-glass-btn';
+                        const usernameStr = escapeHTML(r.username || '');
                         html += `
-                            <div class="p-3 theme-glass-btn rounded-2xl flex justify-between items-center">
+                            <div class="p-3 ${bgClass} rounded-2xl flex justify-between items-center cursor-pointer" onclick="document.getElementById('add-role-username').value='${usernameStr}'">
                                 <div>
-                                    <p class="theme-text-main text-sm font-bold flex items-center gap-1">${displayName} <span class="text-xs text-slate-500">${displayApt}</span></p>
-                                    <p class="text-[10px] uppercase font-black text-slate-400 mt-1">@${r.username || 'unknown'} • Роль: <span class="text-blue-400">${r.role || 'user'}</span></p>
+                                    <p class="theme-text-main text-sm font-bold flex items-center gap-1">${escapeHTML(displayName)} <span class="text-xs ${isSpecial ? 'text-orange-400 font-bold' : 'text-slate-500'}">${escapeHTML(displayApt)}</span></p>
+                                    <p class="text-[10px] uppercase font-black text-slate-400 mt-1">@${usernameStr || 'unknown'} • Роль: <span class="text-blue-400">${escapeHTML(r.role || 'user')}</span></p>
                                 </div>
-                                <button onclick="deleteAdminRole('${r.id}', '${comp_id}')" class="bg-red-500/20 text-red-500 text-[10px] font-black uppercase px-3 py-2 rounded-xl active:bg-red-500/40 shrink-0 ml-2">Отвязать</button>
+                                <button onclick="event.stopPropagation(); deleteAdminRole('${escapeHTML(r.id)}', '${comp_id}')" class="bg-red-500/20 text-red-500 text-[10px] font-black uppercase px-3 py-2 rounded-xl active:bg-red-500/40 shrink-0 ml-2">Отвязать</button>
                             </div>
                         `;
                     });
