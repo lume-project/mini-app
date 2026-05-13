@@ -134,6 +134,11 @@ const tg = window.Telegram.WebApp;
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
                 const data = await response.json();
+                
+                if (data.complex_id) {
+                    APP_CONFIG.complex_id = data.complex_id;
+                }
+                
                 cachedData = data;
                 
                 roleLower = (data.role || "").toLowerCase();
