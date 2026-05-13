@@ -764,6 +764,13 @@ const tg = window.Telegram.WebApp;
             }
         }
 
+        function openComplexApp() {
+            const complexId = document.getElementById('sa-edit-id').value;
+            if (!complexId) return;
+            const v = Math.floor(Date.now() / 1000);
+            window.location.href = `https://lume-project.github.io/mini-app/?complex_id=${complexId}&user_id=${APP_CONFIG.user_id}&v=${v}`;
+        }
+
         async function saveSuperadminComplex() {
             const btn = tg.MainButton;
             btn.setText("СОХРАНЕНИЕ...").show();
