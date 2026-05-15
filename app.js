@@ -421,7 +421,7 @@ const tg = window.Telegram.WebApp;
                         debtFiltered.forEach(d => {
                             html += `
                             <div class="flex justify-between items-center p-4 theme-glass-btn rounded-2xl">
-                                <div class="flex flex-col"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('apartment')}</p><span class="text-sm font-bold text-slate-200">${d.Apartment || d.apt || '--'}</span></div>
+                                <div class="flex flex-col"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('apartment')}</p><span class="text-sm font-bold text-slate-500">${d.Apartment || d.apt || '--'}</span></div>
                                 <div class="text-right"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('total')}</p><span class="text-sm font-black text-red-400">${d.Total_Debt} ${cachedData?.finance?.currency || '€'}</span></div>
                             </div>`;
                         });
