@@ -188,6 +188,7 @@
 
                 <div id="admin-block" class="hidden mt-4 space-y-3">
                     <button id="t-notification" onclick="openModal('notifications')" class="hidden w-full glass-card p-3 border-blue-500/20 text-[10px] font-black uppercase text-blue-400 italic active:bg-blue-500/5">Notification</button>
+                    <button id="t-channel-post" onclick="openModal('channel-post')" class="hidden w-full glass-card p-3 border-green-500/20 text-[10px] font-black uppercase text-green-400 italic active:bg-green-500/5">Пост в канал</button>
                     <button id="t-debtors-list" onclick="openModal('debtors')" class="hidden w-full glass-card p-3 border-blue-500/20 text-[10px] font-black uppercase text-blue-400 italic active:bg-blue-500/5">Debtors List</button>
                     <button id="engineer-btn" onclick="openChecklist()" class="hidden w-full glass-card p-3 border-blue-500/20 text-[10px] font-black uppercase text-blue-400 italic active:bg-blue-500/5">Checklist</button>
                     <button id="admin-panel-btn" onclick="openAdminPanel()" class="hidden w-full glass-card p-3 border-orange-500/20 text-[10px] font-black uppercase text-orange-400 italic active:bg-orange-500/5">Admin Panel</button>
@@ -283,6 +284,11 @@
             <div class="glass-card p-4">
                 <p class="text-[10px] text-slate-500 mb-2 uppercase font-black">Город (City)</p>
                 <input type="text" id="sa-edit-city" class="w-full bg-transparent border-b border-white/10 text-sm pb-2 placeholder-slate-600" placeholder="Например: Becici,ME">
+            </div>
+
+            <div class="glass-card p-4">
+                <p class="text-[10px] text-slate-500 mb-2 uppercase font-black">Канал ЖК (@username или ID)</p>
+                <input type="text" id="sa-edit-channel-id" class="w-full bg-transparent border-b border-white/10 text-sm pb-2 placeholder-slate-600" placeholder="Например: @my_channel или -100123456789">
             </div>
 
             <!-- Logo Upload -->
