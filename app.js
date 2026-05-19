@@ -360,7 +360,8 @@ const tg = window.Telegram.WebApp;
                     const data = result.data || {};
                     const msg = `Файл успешно загружен.\nСтрок обработано: ${data.total_rows || 0}\nНайдено апартаментов: ${data.found_apts || 0}\nОбновлено должников: ${data.updated || 0}`;
                     tg.showAlert(msg);
-                    fetchData(); // reload debtors
+                    await loadData();
+                    openModal('debtors');
                 } else {
                     tg.showAlert(result.error || "Ошибка загрузки");
                 }
@@ -434,6 +435,13 @@ const tg = window.Telegram.WebApp;
                         <div class="space-y-2">`;
                         
                     const debtFiltered = (cachedData?.all_debtors || []).filter(d => parseFloat(String(d.Total_Debt || "0").replace(',', '.')) > 0);
+                    
+                    debtFiltered.sort((a, b) => {
+                        const aptA = String(a.Apartment || a.apt || '');
+                        const aptB = String(b.Apartment || b.apt || '');
+                        return aptA.localeCompare(aptB, undefined, {numeric: true, sensitivity: 'base'});
+                    });
+
                     if (!debtFiltered.length) {
                         html += `<p class="text-center text-slate-500 py-10 uppercase text-[9px] font-black tracking-widest">${t('no_debtors')}</p>`;
                     } else {
