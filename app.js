@@ -378,6 +378,38 @@ const tg = window.Telegram.WebApp;
             window.location.href = url;
         }
 
+        let debtorsPage = 1;
+        const DEBTORS_PER_PAGE = 30;
+
+        function loadMoreDebtors() {
+            if (!window.cachedDebtorsList || window.cachedDebtorsList.length === 0) return;
+            const container = document.getElementById('debtors-list-container');
+            const btn = document.getElementById('load-more-debtors-btn');
+            if (!container) return;
+
+            const start = (debtorsPage - 1) * DEBTORS_PER_PAGE;
+            const end = start + DEBTORS_PER_PAGE;
+            const chunk = window.cachedDebtorsList.slice(start, end);
+
+            let html = "";
+            chunk.forEach(d => {
+                html += `
+                <div class="flex justify-between items-center p-4 theme-glass-btn rounded-2xl">
+                    <div class="flex flex-col"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('apartment')}</p><span class="text-sm font-bold text-slate-500">${d.Apartment || d.apt || '--'}</span></div>
+                    <div class="text-right"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('total')}</p><span class="text-sm font-black text-red-400">${d.Total_Debt} ${cachedData?.finance?.currency || '€'}</span></div>
+                </div>`;
+            });
+
+            container.insertAdjacentHTML('beforeend', html);
+            
+            if (end >= window.cachedDebtorsList.length) {
+                if (btn) btn.classList.add('hidden');
+            } else {
+                if (btn) btn.classList.remove('hidden');
+                debtorsPage++;
+            }
+        }
+
         function openModal(type) {
             const body = document.getElementById('modal-body');
             let html = "";
@@ -422,17 +454,18 @@ const tg = window.Telegram.WebApp;
                         <button onclick="sendPdfReport()" class="w-full py-4 bg-blue-600 rounded-2xl font-black uppercase text-[10px] tracking-widest active:bg-blue-700 transition-colors">${t('gen_send')}</button>`;
                     break;
                 case 'debtors':
+                    debtorsPage = 1;
                     html = `<h2 class="text-xl font-bold mb-6 italic text-blue-400">${t('debtors_list')}</h2>`;
                     
                     // Add the "Remind Payment" and "PDF Report" buttons at the top of the modal
                     html += `
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <button onclick="openModal('payment-reminders')" class="w-full py-3 bg-blue-600/20 border border-blue-500/30 rounded-xl font-black uppercase text-[10px] tracking-widest text-blue-400 active:bg-blue-600/40">${t('pay_remind_title') || 'Remind'}</button>
-                            <button onclick="openModal('pdf-report-confirm')" class="w-full py-3 bg-blue-600/20 border border-blue-500/30 rounded-xl font-black uppercase text-[10px] tracking-widest text-blue-400 active:bg-blue-600/40">${t('pdf_title') || 'PDF Report'}</button>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <button onclick="openModal('payment-reminders')" class="w-full min-h-[44px] py-3 bg-blue-600/20 border border-blue-500/30 rounded-xl font-black uppercase text-[10px] sm:text-xs tracking-widest text-blue-400 active:bg-blue-600/40">${t('pay_remind_title') || 'Remind'}</button>
+                            <button onclick="openModal('pdf-report-confirm')" class="w-full min-h-[44px] py-3 bg-blue-600/20 border border-blue-500/30 rounded-xl font-black uppercase text-[10px] sm:text-xs tracking-widest text-blue-400 active:bg-blue-600/40">${t('pdf_title') || 'PDF Report'}</button>
                         </div>
                         <input type="file" id="finance-upload" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="hidden" onchange="uploadFinances(event)">
-                        <button onclick="document.getElementById('finance-upload').click()" class="w-full py-3 mb-6 bg-emerald-600/20 border border-emerald-500/30 rounded-xl font-black uppercase text-[10px] tracking-widest text-emerald-400 active:bg-emerald-600/40">LOAD (CSV/EXCEL)</button>
-                        <div class="space-y-2">`;
+                        <button onclick="document.getElementById('finance-upload').click()" class="w-full min-h-[44px] py-3 mb-6 bg-emerald-600/20 border border-emerald-500/30 rounded-xl font-black uppercase text-[10px] sm:text-xs tracking-widest text-emerald-400 active:bg-emerald-600/40">LOAD (CSV/EXCEL)</button>
+                        <div id="debtors-list-container" class="space-y-2">`;
                         
                     const debtFiltered = (cachedData?.all_debtors || []).filter(d => parseFloat(String(d.Total_Debt || "0").replace(',', '.')) > 0);
                     
@@ -443,17 +476,16 @@ const tg = window.Telegram.WebApp;
                     });
 
                     if (!debtFiltered.length) {
-                        html += `<p class="text-center text-slate-500 py-10 uppercase text-[9px] font-black tracking-widest">${t('no_debtors')}</p>`;
+                        html += `<p class="text-center text-slate-500 py-10 uppercase text-[9px] font-black tracking-widest">${t('no_debtors')}</p></div>`;
                     } else {
-                        debtFiltered.forEach(d => {
-                            html += `
-                            <div class="flex justify-between items-center p-4 theme-glass-btn rounded-2xl">
-                                <div class="flex flex-col"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('apartment')}</p><span class="text-sm font-bold text-slate-500">${d.Apartment || d.apt || '--'}</span></div>
-                                <div class="text-right"><p class="text-[8px] uppercase font-black text-slate-500 mb-1">${t('total')}</p><span class="text-sm font-black text-red-400">${d.Total_Debt} ${cachedData?.finance?.currency || '€'}</span></div>
-                            </div>`;
-                        });
+                        html += `</div>
+                        <button id="load-more-debtors-btn" onclick="loadMoreDebtors()" class="hidden w-full min-h-[44px] mt-4 py-3 bg-slate-800/50 rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-300">Загрузить еще</button>`;
                     }
-                    html += `</div>`;
+                    setTimeout(() => {
+                        window.cachedDebtorsList = debtFiltered;
+                        loadMoreDebtors();
+                    }, 50);
+                    
                     break;
                 case 'in-progress':
                     let headerTitle = showingArchive ? t('archive_btn') : t('in_progress');
